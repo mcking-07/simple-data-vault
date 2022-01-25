@@ -3,7 +3,7 @@ import base64
 import imageio
 import cv2
 
-PASSWORD = "123456" 
+PASSWORD = "080520" 
 
 connect = input("Enter your password?\n")
 
