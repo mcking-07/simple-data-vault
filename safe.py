@@ -1,7 +1,7 @@
 from getpass import getpass
-import base64
+import os
 import cv2
-import imageio
+import base64
 import sqlite3
 
 password = "080520"
@@ -20,9 +20,9 @@ conn = sqlite3.connect('vault.db')
 try:
     command = 'CREATE TABLE VAULT (FULL_NAME TEXT PRIMARY KEY NOT NULL, NAME TEXT NOT NULL, EXTENSION TEXT NOT NULL, FILES TEXT NOT NULL);'
     conn.execute(command)
-    print("Your vault has been created!\nWhat would you like to store in it today?")
+    print("\nYour vault has been created!\nWhat would you like to do today?")
 except:
-    print("You have a vault, what would you like to do today?")
+    print("\nYou have a vault, what would you like to do today?")
     
 while True:
     print("\n" + "*" * 17 + "\n" + "Simple Data Vault" + "\n" + "*" * 17)
@@ -34,7 +34,7 @@ while True:
             exit("Buh-bye...")
         
         case "O":
-            file_type = input("Enter filetype: ")
+            file_type = input("\nEnter filetype: ")
             file_name = input("Enter filename: ")
             file = file_name + "." + file_type
             
@@ -47,22 +47,28 @@ while True:
                 file_data = row[3]
             
             with open(file, 'wb') as file_out:
-                print("File found. opened in encrypted mode: ", file_data)
+                print("\nFile found. Opened in encrypted mode: ", file_data)
                 check_password = getpass("Enter your password to restore file to system: ")
                 
                 if check_password != password:
-                    exit("Incorrect password. Exiting...")
+                    os.remove(file)
+                    exit("\nIncorrect password. Exiting...")
                 
                 file_out.write(base64.b64decode(file_data))
                 
         case "S":
-            file_path = input("Type in the full path to the file you want to store\nExample: /home/mcking/filename.txt\n:")
+            file_path = input("\nEnter the name with the extension of the file you want to store: ")
             file_types = {
-                ("dart", "java", "py", "txt"): "TEXT", 
-                ("jpeg", "jpg", "png"): "IMAGE"
-                }
+                "dart": "TEXT",
+                "java": "TEXT",
+                "py": "TEXT",
+                "txt": "TEXT",
+                "jpeg": "IMAGE",
+                "jpg": "IMAGE",
+                "png": "IMAGE"
+            }
             
-            file_name = path.split("/")
+            file_name = file_path.split("/")
             file_name = file_name[len(file_name) - 1]
             file_data = ""
             
@@ -76,22 +82,25 @@ while True:
                 
             match extension_check:
                 case "IMAGE":
-                    image = cv2.imread(path)
+                    image = cv2.imread(file_path)
                     file_data = base64.b64encode(cv2.imencode('.jpg', image)[1]).decode()
                     
                 case "TEXT":
-                    file_data = open(path, "r").read()
+                    file_data = open(file_path, "r").read()
                     file_data = base64.b64encode(file_data.encode("utf-8")).decode("utf-8")
                 
             command = 'INSERT INTO VAULT (FULL_NAME, NAME, EXTENSION, FILES) VALUES (%s, %s, %s, %s);' %('"' + file_name + '"', '"' + name + '"', '"' + extension + '"', '"' + file_data + '"')
-            conn.execute(command)
-            conn.commit()
+            try:
+                conn.execute(command)
+                conn.commit()
+            except:
+                exit("\nFile already exists! Exiting...")
             
-            print("Files stored in vault.")
+            print("\nFiles stored in vault.")
             check_password = getpass("Enter your password to delete file from system: ")    
             
             if check_password != password:
-                exit("Incorrect password. Exiting...")
+                exit("\nIncorrect password. Exiting...")
             
             os.remove(file_path)
-            print("File deleted from system, successfully.\n")
+            print("\nFile deleted from the system, successfully.")
